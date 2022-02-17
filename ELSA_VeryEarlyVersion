@@ -1,0 +1,28 @@
+(*This is the first verson of ELSA which created on Jan 12, 2022.*)
+
+source = (*input LAMOST .fits file here...*);
+avgv = (*This is the "average value" used for smoothing spectral data.*);
+redshift = (*Please enter the redshift of source*);
+wvl = PixelValue[source, {All, 3}];
+spec = PixelValue[source, {All, 5}];
+
+wvla = MovingAverage[wvl, avgv];
+speca = MovingAverage[spec, avgv];
+(*These two variables are smoothed spectrum data. Do NOT use for numerical analysis!*)
+
+(*This plots the raw/smoothed spectrum at around 3950 Ångströms.*)
+Show[ListLinePlot[{Transpose[{wvl, spec}], Transpose[{wvla, speca}]}, PlotRange -> {{3850, 4050}, All}, PlotTheme -> "Scientific", PlotStyle -> {GrayLevel[0.7], Red}, GridLines -> Automatic, FrameLabel -> {"Wavelength / Ångströms", "Flux"}, ImageSize -> Full, AspectRatio -> 1/5], 
+ Graphics[InfiniteLine[{3934.78*(redshift + 1), 0}, {0, 1}]](*CaK*), 
+ Graphics[InfiniteLine[{3969.59*(redshift + 1), 0}, {0, 1}]](*CaH*), 
+ Graphics[InfiniteLine[{3888.65*(redshift + 1), 0}, {0, 1}]](*He line at 3889 Ångströms*)]
+
+(*Here ELSA use a linear approximation to simulate the star's continuum.*)
+fntavg = Integrate[Interpolation[Transpose[{wvl, spec}], InterpolationOrder -> 1][x], {x, 3900, 3915}]/15;
+bkavg = Integrate[Interpolation[Transpose[{wvl, spec}], InterpolationOrder -> 1][x], {x, 3985, 4000}]/15;
+cakcont = 20*(2 fntavg + (bkavg - fntavg)*4/7);
+cahcont = 15*(2 bkavg - (bkavg - fntavg)*3/7);
+hestrength = (fntavg - Integrate[Interpolation[Transpose[{wvl, spec}], InterpolationOrder -> 1][x], {x, 3880, 3900}])/25;
+cak = cakcont - Integrate[Interpolation[Transpose[{wvl, spec}], InterpolationOrder -> 1][x], {x, 3915, 3955}];
+cah = cahcont - Integrate[Interpolation[Transpose[{wvl, spec}], InterpolationOrder -> 1][x], {x, 3955, 3985}] - hestrength;
+ratio = cah/cak
+(*the output "ratio" is the later s_{ELSA}, an altered version of activity indicator s-index, stands for the (spectroscopic) activity of a star.*)
